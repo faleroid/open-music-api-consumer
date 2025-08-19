@@ -28,8 +28,10 @@ class MailSender {
         },
       ],
     };
+
+    console.log('Email message:', message);
  
-    return this._transporter.sendMail(message);
+    return this._transporter.sendMail(message.attachments);
   }
 }
  
