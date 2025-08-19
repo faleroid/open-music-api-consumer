@@ -5,19 +5,37 @@ class PlaylistsService {
     this._pool = new Pool();
   }
 
-  async getPlaylists(userId) {
-    const query = {
-      text: `SELECT playlists.id, playlists.name, users.username FROM playlists
-      LEFT JOIN collaborations ON collaborations.playlist_id = playlists.id
-      LEFT JOIN users ON users.id = playlists.owner
-      WHERE playlists.owner = $1 OR collaborations.user_id = $1
-      GROUP BY playlists.id, users.username`,
-      values: [userId],
-    };
+  async getPlaylistSongs(playlistId) {
+  const queryPlaylist = {
+    text: `SELECT playlists.id, playlists.name, users.username
+           FROM playlists
+           LEFT JOIN users ON users.id = playlists.owner
+           WHERE playlists.id = $1`,
+    values: [playlistId],
+  };
 
-    const result = await this._pool.query(query);
-    return result.rows;
-  }
+  const resultPlaylist = await this._pool.query(queryPlaylist);
+  if (!resultPlaylist.rowCount) throw new Error('Playlist not found');
+
+  const querySongs = {
+    text: `SELECT songs.id, songs.title, songs.performer
+           FROM playlist_songs
+           LEFT JOIN songs ON songs.id = playlist_songs.song_id
+           WHERE playlist_songs.playlist_id = $1`,
+    values: [playlistId],
+  };
+
+  const resultSongs = await this._pool.query(querySongs);
+
+  return {
+    playlist: {
+      id: resultPlaylist.rows[0].id,
+      name: resultPlaylist.rows[0].name,
+      songs: resultSongs.rows,
+    },
+  };
+}
+
 }
 
 module.exports = PlaylistsService;
